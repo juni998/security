@@ -22,9 +22,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     public void configure(HttpSecurity http) throws Exception {
+        /* 인가 */
         http
                 .authorizeRequests()
                 .anyRequest().authenticated();
+        /* 인증 */
         http
                 .formLogin() //form 로그인 인증 기능 작동
                 //.loginPage("/loginPage") // login 페이지 설정
