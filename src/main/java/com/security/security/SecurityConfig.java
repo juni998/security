@@ -1,5 +1,6 @@
 package com.security.security;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -10,6 +11,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -29,6 +31,10 @@ public class SecurityConfig {
     public WebSecurityCustomizer webSecurityCustomizer() {
         return web -> web.ignoring().antMatchers("/resources/**");
     }
+
+    @Autowired
+    UserDetailsService userDetailsService;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         /* 인가 */
@@ -77,6 +83,14 @@ public class SecurityConfig {
                     }
                 })
                 .deleteCookies("remember-me")
+                .and()
+
+                /* rememberMe */
+                .rememberMe()
+                .rememberMeParameter("remember")
+                .tokenValiditySeconds(3600) // 초단위 , 1시간
+                .userDetailsService(userDetailsService)
+
                 .and().build();
 
 
