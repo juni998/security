@@ -90,6 +90,13 @@ public class SecurityConfig {
                 .rememberMeParameter("remember")
                 .tokenValiditySeconds(3600) // 초단위 , 1시간
                 .userDetailsService(userDetailsService)
+                .and()
+
+                /* 동시 세션 제어 */
+                .sessionManagement()
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false)
+                .and()
 
                 .and().build();
 
