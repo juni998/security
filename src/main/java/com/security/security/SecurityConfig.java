@@ -98,6 +98,10 @@ public class SecurityConfig {
                 .maxSessionsPreventsLogin(false)
                 .and()
 
+
+                /* 세션 고정 보호 */
+                .sessionFixation().changeSessionId()
+
                 .and().build();
 
 
