@@ -3,6 +3,7 @@ package com.security.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -11,7 +12,10 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -32,15 +36,42 @@ public class SecurityConfig {
         return web -> web.ignoring().antMatchers("/resources/**");
     }
 
-    @Autowired
-    UserDetailsService userDetailsService;
+//    @Autowired
+//    UserDetailsService userDetailsService;
+
+    /* 권한설정 */
+    @Bean
+    public UserDetailsService users() {
+        UserDetails user = User.builder()
+                .username("user")
+                .password("{noop}1111")
+                .roles("USER")
+                .build();
+        UserDetails admin = User.builder()
+                .username("admin")
+                .password("{noop}1111")
+                .roles("ADMIN")
+                .build();
+        UserDetails sys = User.builder()
+                .username("sys")
+                .password("{noop}1111")
+                .roles("SYS")
+                .build();
+
+        return new InMemoryUserDetailsManager(user, admin, sys);
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         /* 인가 */
-        return http
+         http
                 .authorizeRequests()
+                .antMatchers("/user").hasRole("USER")
+                .antMatchers("/admin/pay").hasRole("ADMIN")
+                .antMatchers("/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
+
                 .anyRequest().authenticated()
+
                 /* 인증 */
                 .and()
                 .formLogin() //form 로그인 인증 기능 작동
@@ -88,23 +119,24 @@ public class SecurityConfig {
                 /* rememberMe */
                 .rememberMe()
                 .rememberMeParameter("remember")
-                .tokenValiditySeconds(3600) // 초단위 , 1시간
-                .userDetailsService(userDetailsService)
+                .tokenValiditySeconds(3600) // 초단위 , 1시간.userDetailsService(userDetailsService)
                 .and()
 
                 /* 동시 세션 제어 */
                 .sessionManagement()
                 .maximumSessions(1)
-                .maxSessionsPreventsLogin(false)
+                .maxSessionsPreventsLogin(true)
                 .and()
 
 
                 /* 세션 고정 보호 */
-                .sessionFixation().changeSessionId()
+                .sessionFixation().changeSessionId();
 
-                .and().build();
+        return http.build();
 
 
 
     }
+
+
 }
