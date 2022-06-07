@@ -3,6 +3,7 @@ package com.security.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,11 +17,16 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.RequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -68,8 +74,8 @@ public class SecurityConfig {
                 .authorizeRequests()
                 .antMatchers("/user").hasRole("USER")
                 .antMatchers("/admin/pay").hasRole("ADMIN")
-                .antMatchers("/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
-
+                 .antMatchers("/admin/**").access("hasRole('ADMIN') or hasRole('SYS')")
+                 .antMatchers("/login").permitAll()
                 .anyRequest().authenticated()
 
                 /* 인증 */
@@ -84,8 +90,10 @@ public class SecurityConfig {
                 .successHandler(new AuthenticationSuccessHandler() { // 로그인 성공 후 핸들러
                     @Override
                     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-                        System.out.println("authentication " + authentication.getName());
-                        response.sendRedirect("/");
+                        RequestCache requestCache = new HttpSessionRequestCache();
+                        SavedRequest savedRequest = requestCache.getRequest(request, response); // 사용자 정보 저장되어 있음
+                        String redirectUrl = savedRequest.getRedirectUrl();
+                        response.sendRedirect(redirectUrl); //세선에 저장되어 있던 정보를 이동하게 처리
                     }
                 })
                 .failureHandler(new AuthenticationFailureHandler() {
@@ -131,6 +139,21 @@ public class SecurityConfig {
 
                 /* 세션 고정 보호 */
                 .sessionFixation().changeSessionId();
+
+        http
+                .exceptionHandling()
+                .authenticationEntryPoint(new AuthenticationEntryPoint() { //로그인 실패
+                    @Override
+                    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+                        response.sendRedirect("/login");
+                    }
+                })
+                .accessDeniedHandler(new AccessDeniedHandler() { //권한 문제
+                    @Override
+                    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
+                        response.sendRedirect("/denied");
+                    }
+                });
 
         return http.build();
 
