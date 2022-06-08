@@ -154,6 +154,8 @@ public class SecurityConfig {
                         response.sendRedirect("/denied");
                     }
                 });
+        http
+                .csrf().disable();
 
         return http.build();
 
